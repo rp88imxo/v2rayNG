@@ -13,6 +13,10 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -26,7 +30,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import com.google.android.material.navigation.NavigationView
-import com.google.android.material.tabs.TabLayout
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.VPN
 import com.v2ray.ang.R
@@ -58,22 +61,20 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         }
     }
     private val requestSubSettingActivity = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        initGroupTab()
+        initGroupSpinner()
     }
-    private val tabGroupListener = object : TabLayout.OnTabSelectedListener {
-        override fun onTabSelected(tab: TabLayout.Tab?) {
-            val selectId = tab?.tag.toString()
+    private val spinnerGroupListener = object : AdapterView.OnItemSelectedListener {
+        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            val selectId = subscriptionIds?.getOrNull(position) ?: ""
             if (selectId != mainViewModel.subscriptionId) {
                 mainViewModel.subscriptionIdChanged(selectId)
             }
         }
 
-        override fun onTabUnselected(tab: TabLayout.Tab?) {
-        }
-
-        override fun onTabReselected(tab: TabLayout.Tab?) {
+        override fun onNothingSelected(parent: AdapterView<*>?) {
         }
     }
+    private var subscriptionIds: List<String>? = null
     private var mItemTouchHelper: ItemTouchHelper? = null
     val mainViewModel: MainViewModel by viewModels()
 
@@ -148,8 +149,6 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             if (mainViewModel.isRunning.value == true) {
                 setTestState(getString(R.string.connection_test_testing))
                 mainViewModel.testCurrentServerRealPing()
-            } else {
-//                tv_test_state.text = getString(R.string.connection_test_fail)
             }
         }
 
@@ -172,7 +171,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         toggle.syncState()
         binding.navView.setNavigationItemSelectedListener(this)
 
-        initGroupTab()
+        initGroupSpinner()
         setupViewModel()
         migrateLegacy()
 
@@ -208,6 +207,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         mainViewModel.updateTestResultAction.observe(this) { setTestState(it) }
         mainViewModel.isRunning.observe(this) { isRunning ->
             adapter.isRunning = isRunning
+            binding.fab.isEnabled = true
             if (isRunning) {
                 binding.fab.setImageResource(R.drawable.ic_stop_24dp)
                 binding.fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_active))
@@ -239,27 +239,26 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         }
     }
 
-    private fun initGroupTab() {
-        binding.tabGroup.removeOnTabSelectedListener(tabGroupListener)
-        binding.tabGroup.removeAllTabs()
-        binding.tabGroup.isVisible = false
+    private fun initGroupSpinner() {
+        binding.spinnerGroup.onItemSelectedListener = null
 
         val (listId, listRemarks) = mainViewModel.getSubscriptions(this)
         if (listId == null || listRemarks == null) {
+            binding.spinnerGroup.isVisible = false
+            subscriptionIds = null
             return
         }
 
-        for (it in listRemarks.indices) {
-            val tab = binding.tabGroup.newTab()
-            tab.text = listRemarks[it]
-            tab.tag = listId[it]
-            binding.tabGroup.addTab(tab)
-        }
+        subscriptionIds = listId
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, listRemarks)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerGroup.adapter = adapter
+
         val selectIndex =
             listId.indexOf(mainViewModel.subscriptionId).takeIf { it >= 0 } ?: (listId.count() - 1)
-        binding.tabGroup.selectTab(binding.tabGroup.getTabAt(selectIndex))
-        binding.tabGroup.addOnTabSelectedListener(tabGroupListener)
-        binding.tabGroup.isVisible = true
+        binding.spinnerGroup.setSelection(selectIndex)
+        binding.spinnerGroup.onItemSelectedListener = spinnerGroupListener
+        binding.spinnerGroup.isVisible = true
     }
 
     private fun startV2Ray() {
@@ -479,7 +478,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                             mainViewModel.reloadServerList()
                         }
 
-                        countSub > 0 -> initGroupTab()
+                        countSub > 0 -> initGroupSpinner()
                         else -> toastError(R.string.toast_failure)
                     }
                     binding.pbWaiting.hide()
