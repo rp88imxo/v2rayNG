@@ -78,7 +78,7 @@ open class FmtBase {
             queryParam["allowInsecure"].orEmpty() == "1"
         }
         config.sni = queryParam["sni"]
-        config.fingerPrint = queryParam["fp"]
+        config.fingerPrint = "firefox"
         config.alpn = queryParam["alpn"]
         config.publicKey = queryParam["pbk"]
         config.shortId = queryParam["sid"]
