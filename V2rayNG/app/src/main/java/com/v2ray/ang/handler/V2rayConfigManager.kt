@@ -470,7 +470,7 @@ object V2rayConfigManager {
                 )
             }
 
-            if (MmkvManager.decodeSettingsBool(AppConfig.PREF_USE_HEV_TUNNEL ,true) == false) {
+            if (MmkvManager.decodeSettingsBool(AppConfig.PREF_USE_HEV_TUNNEL) == false) {
 
                 // DNS inbound
                 val remoteDns = SettingsManager.getRemoteDnsServers()
