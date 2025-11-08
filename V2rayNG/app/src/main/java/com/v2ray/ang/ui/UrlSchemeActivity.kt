@@ -46,7 +46,16 @@ class UrlSchemeActivity : BaseActivity() {
                         }
 
                         else -> {
-                            toastError(R.string.toast_failure)
+                            // Handle direct flint:// VLESS profile URLs
+                            val uri: Uri? = intent.data
+                            if (uri != null) {
+                                val flintUrl = uri.toString()
+                                // Convert flint:// to vless:// for parsing
+                                val vlessUrl = flintUrl.replaceFirst("flint://", "vless://")
+                                parseUri(vlessUrl, null)
+                            } else {
+                                toastError(R.string.toast_failure)
+                            }
                         }
                     }
                 }
