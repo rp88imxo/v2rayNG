@@ -45,6 +45,20 @@ class UrlSchemeActivity : BaseActivity() {
                             parseUri(shareUrl, uri?.fragment)
                         }
 
+                        "flintapp.ru" -> {
+                            val uri: Uri? = intent.data
+                            if (uri?.path?.startsWith("/import") == true) {
+                                val encodedConfig = uri.getQueryParameter("config")
+                                if (!encodedConfig.isNullOrEmpty()) {
+                                    parseUri(encodedConfig, null)
+                                } else {
+                                    toastError(R.string.toast_failure)
+                                }
+                            } else {
+                                toastError(R.string.toast_failure)
+                            }
+                        }
+
                         else -> {
                             // Handle direct flint:// VLESS profile URLs
                             val uri: Uri? = intent.data
